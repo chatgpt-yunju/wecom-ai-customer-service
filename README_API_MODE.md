@@ -81,3 +81,18 @@ POLL_INTERVAL=10  # 10秒轮询一次
 ## 📧 联系
 
 2743319061@qq.com
+
+---
+
+## 📚 相关文档
+
+- **BRANCHES.md** - 分支选择和对比
+- **CONFIGURATION.md** - 配置详解
+- **DEPLOY_GUIDE.md** - 完整部署指南
+- **API_DOCS.md** - 外部API接口文档
+
+---
+
+## 📧 联系
+
+2743319061@qq.com

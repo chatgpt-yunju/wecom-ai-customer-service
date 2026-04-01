@@ -76,3 +76,36 @@ AI_TEMPERATURE=0.7
 
 ---
 更新: 2026-04-01
+
+## API密钥配置
+
+外部API接口使用 `API_KEY` 进行认证。
+
+```env
+API_KEY=your_external_api_key_here
+```
+
+**使用方法**：
+```bash
+curl -X POST https://your-domain.com/api/v1/wecom/send \
+  -H "X-API-Key: your_api_key_here" \
+  -H "Content-Type: application/json" \
+  -d '{"userId":"xxx", "message":"Hello"}'
+```
+
+**安全建议**：
+- 使用强随机字符串作为API Key
+- 定期轮换
+- 限制使用频率（建议在生产环境配置限流）
+
+## 外部API接口列表
+
+| 接口 | 方法 | 路径 | 说明 |
+|------|------|------|------|
+| 发送私信 | POST | `/api/v1/wecom/send` | 向单个用户发送消息 |
+| 批量发送 | POST | `/api/v1/wecom/send/batch` | 向多个用户批量发送 |
+| 查询用户 | GET | `/api/v1/wecom/user/:userId` | 获取用户信息 |
+| 健康检查 | GET | `/api/v1/wecom/health` | 验证API连接 |
+
+详细文档: `API_DOCS.md`
+

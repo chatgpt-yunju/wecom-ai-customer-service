@@ -1,0 +1,114 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg15
+    container_name: wecom_postgres
+    environment:
+      POSTGRES_USER: wecom_user
+      POSTGRES_PASSWORD: wecom_password
+      POSTGRES_DB: wecom_ai
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./src/config/database.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wecom_user -d wecom_ai"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - wecom-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: wecom_redis
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - wecom-network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wecom_app
+    environment:
+      # AI 配置
+      - AI_PROVIDER=${AI_PROVIDER:-openai}
+      - AI_API_BASE_URL=${AI_API_BASE_URL}
+      - AI_API_KEY=${AI_API_KEY}
+      - AI_MODEL=${AI_MODEL:-gpt-3.5-turbo}
+      - AI_MAX_TOKENS=${AI_MAX_TOKENS:-4000}
+      - AI_TEMPERATURE=${AI_TEMPERATURE:-0.7}
+      - AI_SYSTEM_PROMPT=${AI_SYSTEM_PROMPT}
+      
+      # 企业微信配置
+      - WECOM_CORP_ID=${WECOM_CORP_ID}
+      - WECOM_CORP_SECRET=${WECOM_CORP_SECRET}
+      - WECOM_TOKEN=${WECOM_TOKEN}
+      - WECOM_ENCODING_AES_KEY=${WECOM_ENCODING_AES_KEY}
+      - WECOM_AGENT_ID=${WECOM_AGENT_ID}
+      - WECOM_API_HOST=${WECOM_API_HOST:-https://qyapi.weixin.qq.com/cgi-bin}
+      
+      # 数据库配置
+      - DATABASE_HOST=postgres
+      - DATABASE_PORT=5432
+      - DATABASE_USERNAME=wecom_user
+      - DATABASE_PASSWORD=wecom_password
+      - DATABASE_NAME=wecom_ai
+      
+      # Redis配置
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      
+      # 服务器配置
+      - NODE_ENV=production
+      - SERVER_HOST=0.0.0.0
+      - SERVER_PORT=3000
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-7d}
+      
+      # CORS
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+      
+      # 日志
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./uploads:/app/uploads
+      - ./logs:/app/logs
+      - ./.env:/app/.env
+    networks:
+      - wecom-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  wecom-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+

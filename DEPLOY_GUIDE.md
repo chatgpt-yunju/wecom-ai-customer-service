@@ -52,3 +52,13 @@ GET /api/v1/wecom/health
 
 详细API文档见 `API_DOCS.md`。
 
+
+---
+
+## 📧 联系方式
+
+项目维护：Claude Code  
+联系邮箱：**2743319061@qq.com**  
+GitHub：https://github.com/chatgpt-yunju/wecom-ai-customer-service
+
+欢迎提交Issue和Pull Request！

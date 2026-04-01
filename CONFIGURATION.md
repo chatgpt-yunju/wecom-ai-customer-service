@@ -109,3 +109,15 @@ curl -X POST https://your-domain.com/api/v1/wecom/send \
 
 详细文档: `API_DOCS.md`
 
+
+---
+
+## 📧 联系我们
+
+如有配置问题或使用疑问，请联系：
+
+- **邮箱**: 2743319061@qq.com
+- **项目地址**: https://github.com/chatgpt-yunju/wecom-ai-customer-service
+
+---
+更新: 2026-04-01

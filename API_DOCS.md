@@ -280,3 +280,16 @@ API_KEY=your_external_api_key_here
 ---
 
 最后更新: 2026-04-01
+
+---
+
+## 📧 技术支持
+
+如有问题或建议，请联系：
+
+- **邮箱**: 2743319061@qq.com
+- **GitHub Issues**: https://github.com/chatgpt-yunju/wecom-ai-customer-service/issues
+
+---
+
+最后更新: 2026-04-01

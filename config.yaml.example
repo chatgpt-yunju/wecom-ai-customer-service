@@ -1,0 +1,18 @@
+wechat_db_path: "AUTO_DETECT"
+ai:
+  api_base_url: "https://api.yunjunet.cn/v1"
+  api_key: "your_api_key_here"
+  model: "claude-3-opus-20240229"
+  max_tokens: 4000
+  temperature: 0.7
+  system_prompt: "你是一个专业的客服助手"
+wecom:
+  corp_id: "your_corp_id"
+  corp_secret: "your_corp_secret"
+  agent_id: 123456
+  api_host: "https://qyapi.weixin.qq.com/cgi-bin"
+monitor:
+  poll_interval: 3000
+  user_id_filter: []
+  ignore_self: true
+  reply_delay: 1000

@@ -1,0 +1,23 @@
+{
+  "name": "wecom-monitor",
+  "version": "1.0.0-alpha",
+  "description": "Monitor WeChatWork.exe and auto-reply with AI",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "ts-node-dev --respawn src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "axios": "^1.5.0",
+    "better-sqlite3": "^9.2.2",
+    "yaml": "^2.3.4",
+    "winston": "^3.10.0"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.8",
+    "@types/node": "^20.5.0",
+    "typescript": "^5.1.6",
+    "ts-node-dev": "^2.0.0"
+  }
+}

@@ -62,3 +62,30 @@ GET /api/v1/wecom/health
 GitHub：https://github.com/chatgpt-yunju/wecom-ai-customer-service
 
 欢迎提交Issue和Pull Request！
+
+---
+
+## 🌿 Git分支说明
+
+本项目维护两个分支：
+
+| 分支 | 说明 | 适用场景 |
+|------|------|----------|
+| `main` | **主分支**，包含所有最新功能（外部API私信接口） | 新项目部署，需要全部功能 |
+| `old-branch` | 历史分支，最初版本（企业微信回调+AI对话+知识库） | 只需基础功能，不需要API接口 |
+
+**查看分支**：
+```bash
+git branch -a
+```
+
+**切换分支**：
+```bash
+git checkout old-branch  # 切换到旧版本
+git checkout main        # 切换回最新版本
+```
+
+**推荐**：新项目直接使用 `main` 分支，包含完整的API私信功能。
+
+---
+最后更新: 2026-04-01

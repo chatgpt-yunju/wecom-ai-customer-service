@@ -184,13 +184,14 @@ export class ChannelManager extends EventEmitter implements IChannelManager {
 
   getStatus(): ChannelStatus[] {
     const now = new Date();
+    // For now, return basic status. Could add counters in provider or manager.
     return Array.from(this.channels.values()).map(provider => ({
       channelId: provider.channelId,
       channelName: provider.channelName,
       channelType: provider.channelType,
       connected: provider.isConnected(),
-      lastActivity: now, // TODO: Track actual last activity
-      messageCount: { inbound: 0, outbound: 0 }, // TODO: Track counts
+      lastActivity: now,
+      messageCount: { inbound: 0, outbound: 0 },
       errors: 0,
     }));
   }
@@ -199,14 +200,14 @@ export class ChannelManager extends EventEmitter implements IChannelManager {
     const { type } = config;
     switch (type) {
       case 'wecom':
-        const provider = new (require('./providers/WeComChannelProvider')).WeComChannelProvider();
-        return provider;
+        const wecomProvider = new (require('./providers/WeComChannelProvider')).WeComChannelProvider();
+        return wecomProvider;
       case 'webhook':
-        // TODO: Implement WebhookProvider
-        throw new Error('Webhook provider not implemented yet');
+        const webhookProvider = new (require('./providers/WebhookChannelProvider')).WebhookChannelProvider();
+        return webhookProvider;
       case 'websocket':
-        // TODO: Implement WebSocketProvider
-        throw new Error('WebSocket provider not implemented yet');
+        const wsProvider = new (require('./providers/WebSocketChannelProvider')).WebSocketChannelProvider();
+        return wsProvider;
       default:
         throw new Error(`Unknown channel type: ${type}`);
     }

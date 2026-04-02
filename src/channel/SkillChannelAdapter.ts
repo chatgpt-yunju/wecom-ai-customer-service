@@ -18,7 +18,7 @@ import type { MessageEvent, SkillCapabilities } from '../skill/types';
 export class SkillChannelAdapter extends EventEmitter implements ISkillChannelAdapter {
   private channelManager: IChannelManager | null = null;
   private skill: IOpenClawSkill;
-  private subscribedChannels: Set<string> = new Set();
+  private subscribedChannels: Map<string, Set<string>> = new Map(); // channelId -> set of skillIds
   private skillId: string;
 
   constructor(skill: IOpenClawSkill, skillId?: string) {
@@ -39,23 +39,27 @@ export class SkillChannelAdapter extends EventEmitter implements ISkillChannelAd
   }
 
   async subscribe(channelId: string, skillId: string): Promise<void> {
-    if (skillId !== this.skillId) {
-      throw new Error(`Cannot subscribe to skill ${skillId} (this adapter handles ${this.skillId})`);
-    }
-
     if (!this.channelManager) {
       throw new Error('ChannelAdapter not initialized');
     }
 
-    this.subscribedChannels.add(channelId);
-    console.log(`Skill ${this.skillId} subscribed to channel ${channelId}`);
+    let skillSet = this.subscribedChannels.get(channelId);
+    if (!skillSet) {
+      skillSet = new Set<string>();
+      this.subscribedChannels.set(channelId, skillSet);
+    }
+    skillSet.add(skillId);
+    console.log(`Skill ${skillId} subscribed to channel ${channelId}`);
   }
 
   async unsubscribe(channelId: string, skillId: string): Promise<void> {
-    if (skillId !== this.skillId) {
-      return;
+    const skillSet = this.subscribedChannels.get(channelId);
+    if (skillSet) {
+      skillSet.delete(skillId);
+      if (skillSet.size === 0) {
+        this.subscribedChannels.delete(channelId);
+      }
     }
-    this.subscribedChannels.delete(channelId);
   }
 
   async sendThroughChannel(channelId: string, message: Partial<ChannelMessage>): Promise<boolean> {
@@ -63,29 +67,24 @@ export class SkillChannelAdapter extends EventEmitter implements ISkillChannelAd
       throw new Error('ChannelAdapter not initialized');
     }
 
-    if (!this.subscribedChannels.has(channelId)) {
-      throw new Error(`Skill not subscribed to channel ${channelId}`);
+    // Check subscription via any skill ID (since adapter may handle multiple skills)
+    const isSubscribed = Array.from(this.subscribedChannels.values()).some((skillIds) => skillIds.has(this.skillId));
+    if (!isSubscribed) {
+      throw new Error(`Skill ${this.skillId} not subscribed to any channel`);
     }
 
-    // Convert skill response to ChannelMessage
+    // Build full ChannelMessage
     const channelMsg: ChannelMessage = {
-      id: `outbound-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: message.id || `outbound-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       channelId,
       channelName: channelId,
       channelType: 'custom',
-      timestamp: new Date(),
+      timestamp: message.timestamp || new Date(),
       direction: 'outbound',
-      from: {
-        id: this.skillId,
-        name: 'AI Skill',
-        type: 'bot',
-      },
+      from: message.from || { id: this.skillId, name: 'AI Skill', type: 'bot' },
       to: message.to || { id: '', name: '', type: 'user' },
-      content: {
-        type: 'text',
-        text: message.content || '',
-      },
-      raw: {},
+      content: message.content || { type: 'text', text: '' },
+      raw: message.raw || {},
       metadata: message.metadata || {},
     };
 
@@ -100,14 +99,16 @@ export class SkillChannelAdapter extends EventEmitter implements ISkillChannelAd
   }
 
   private async handleInboundMessage(message: ChannelMessage): Promise<void> {
-    // Check if this skill is responsible for this message
-    if (message.skillId && message.skillId !== this.skillId) {
-      return; // Not for this skill
+    // Check if this skill adapter should handle this message
+    // 1. Check if message is routed to any skill this adapter manages
+    const skillIdsForChannel = this.subscribedChannels.get(message.channelId);
+    if (!skillIdsForChannel || skillIdsForChannel.size === 0) {
+      return; // No skills subscribed to this channel
     }
 
-    // Check subscription
-    if (this.subscribedChannels.size > 0 && !this.subscribedChannels.has(message.channelId)) {
-      return; // Not subscribed to this channel
+    // If message has explicit skillId, check if it's one we manage
+    if (message.skillId && !skillIdsForChannel.has(message.skillId)) {
+      return; // Not for this adapter's skills
     }
 
     try {
@@ -126,11 +127,10 @@ export class SkillChannelAdapter extends EventEmitter implements ISkillChannelAd
         },
       };
 
-      // Forward to skill
+      // Forward to skill (always use this.skillId as the skill instance)
       const response = await this.skill.onMessageReceived(skillEvent);
 
-      // If skill produced a response and we have a channel to reply on,
-      // send the response back through that channel
+      // If skill produced a response, send it back through the same channel
       if (response && message.channelId) {
         const outboundMsg: Partial<ChannelMessage> = {
           to: message.from,

@@ -11,9 +11,10 @@ import type { ChannelSystemConfig, ChannelConfig } from '../types';
 export const exampleChannelConfig: ChannelSystemConfig = {
   enabled: true,
   channels: [
+    // WeCom Channel - receives messages from enterprise WeChat
     {
       type: 'wecom',
-      name: 'WeCom Main',
+      name: 'WeCom Customer Service',
       enabled: true,
       config: {
         corpId: process.env.WECOM_CORP_ID || '',
@@ -25,36 +26,41 @@ export const exampleChannelConfig: ChannelSystemConfig = {
       },
       routes: [
         {
-          skillId: 'wecom-ai-cs-skill',
+          skillId: 'wecom-ai-customer-service',
           match: {
-            eventType: 'text',
+            // Match all messages; could filter by eventType, etc.
           },
         },
       ],
     },
+
+    // Webhook Channel - receives HTTP POST requests from external systems
     {
       type: 'webhook',
-      name: 'External Webhook',
-      enabled: false, // Enable when needed
+      name: 'External API Webhook',
+      enabled: false, // Set true to enable
       config: {
-        secret: process.env.WEBHOOK_SECRET || '',
-        allowedOrigins: ['https://trusted.example.com'],
+        port: parseInt(process.env.WEBHOOK_PORT || '3002'),
+        path: '/webhook/external',
+        secret: process.env.WEBHOOK_SECRET || '', // Optional signature verification
       },
       routes: [
         {
-          skillId: 'wecom-ai-cs-skill',
+          skillId: 'wecom-ai-customer-service',
           match: {
-            contentType: 'text',
+            // Route all webhook messages to skill
           },
         },
       ],
     },
+
+    // WebSocket Channel - for real-time bidirectional communication (dashboard, admin UI)
     {
       type: 'websocket',
       name: 'Realtime Dashboard',
-      enabled: false,
+      enabled: false, // Set true to enable
       config: {
-        port: parseInt(process.env.WS_PORT || '3001'),
+        port: parseInt(process.env.WS_PORT || '3003'),
         path: '/ws/channel',
       },
       routes: [
@@ -68,7 +74,7 @@ export const exampleChannelConfig: ChannelSystemConfig = {
     },
   ],
   defaultRoute: {
-    skillId: 'wecom-ai-cs-skill',
+    skillId: 'wecom-ai-customer-service',
     match: {},
   },
   maxQueueSize: 1000,

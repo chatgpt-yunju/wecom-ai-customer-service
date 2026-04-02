@@ -1,0 +1,1 @@
+export { SkillConfigLoader } from './SkillConfig';

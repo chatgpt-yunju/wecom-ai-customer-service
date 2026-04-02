@@ -1,70 +1,46 @@
+/**
+ * Knowledge Controller (Refactored)
+ *
+ * Thin HTTP adapter for knowledge base management endpoints.
+ */
+
 import { Request, Response } from 'express';
-import { AppDataSource } from '../config/database';
-import { KnowledgeBase } from '../models/KnowledgeBase';
-import { KbChunk } from '../models/KbChunk';
-import { v4 as uuidv4 } from 'uuid';
-import fs from 'fs';
-import path from 'path';
-import pdf from 'pdf-parse';
-import mammoth from 'mammoth';
+import { KnowledgeService } from '../services/KnowledgeService';
+import type { KnowledgeDocument } from '../skill/types';
 
 export class KnowledgeController {
-  async upload(req: any, res: Response) {
+  constructor(private knowledgeService: KnowledgeService) {}
+
+  /**
+   * Upload a document to knowledge base.
+   */
+  async upload(req: any, res: Response): Promise<void> {
     try {
       const file = req.file;
-      if (!file) return res.status(400).json({ error: 'No file' });
-      const uploadsDir = path.join(process.cwd(), 'uploads');
-      if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
-      const filePath = path.join(uploadsDir, file.originalname);
-      fs.writeFileSync(filePath, file.buffer);
-      const kb = AppDataSource.getRepository(KnowledgeBase).create({ name: file.originalname, fileName: file.originalname, filePath, fileType: file.mimetype, fileSize: file.size, status: 'processing' });
-      await AppDataSource.getRepository(KnowledgeBase).save(kb);
-      this.processFile(kb.id, filePath, file.mimetype).catch(console.error);
-      res.json({ id: kb.id, name: kb.name, status: 'processing' });
+      if (!file) {
+        res.status(400).json({ error: 'No file' });
+        return;
+      }
+
+      const description = req.body.description;
+      const document = await this.knowledgeService.uploadDocument(file, description);
+      res.json(document);
     } catch (error) {
       res.status(500).json({ error: 'Upload failed' });
     }
   }
-  async list(req: Request, res: Response) {
-    const list = await AppDataSource.getRepository(KnowledgeBase).find({ order: { createdAt: 'DESC' } });
-    res.json({ knowledge_base: list });
-  }
-  private async processFile(kbId: number, filePath: string, mimeType: string) {
+
+  /**
+   * List knowledge base documents.
+   */
+  async list(req: Request, res: Response): Promise<void> {
     try {
-      let text: string;
-      if (mimeType === 'application/pdf') {
-        const data = await pdf.fromFile(filePath);
-        text = data.text;
-      } else if (mimeType.includes('word') || mimeType.includes('document')) {
-        const result = await mammoth.extractRawText({ path: filePath });
-        text = result.value;
-      } else {
-        text = fs.readFileSync(filePath, 'utf-8');
-      }
-      const chunks = this.chunkText(text);
-      for (let i = 0; i < chunks.length; i++) {
-        const chunk = AppDataSource.getRepository(KbChunk).create({ kbId, chunkIndex: i, content: chunks[i] });
-        await AppDataSource.getRepository(KbChunk).save(chunk);
-      }
-      const kb = await AppDataSource.getRepository(KnowledgeBase).findOneBy({ id: kbId });
-      if (kb) {
-        kb.chunkCount = chunks.length;
-        kb.status = 'ready';
-        await AppDataSource.getRepository(KnowledgeBase).save(kb);
-      }
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 50;
+      const result = await this.knowledgeService.listDocuments(page, limit);
+      res.json({ knowledge_base: result.documents, total: result.total });
     } catch (error) {
-      const kb = await AppDataSource.getRepository(KnowledgeBase).findOneBy({ id: kbId });
-      if (kb) { kb.status = 'error'; await AppDataSource.getRepository(KnowledgeBase).save(kb); }
+      res.status(500).json({ error: 'Failed to list documents' });
     }
-  }
-  private chunkText(text: string, chunkSize: number = 1000): string[] {
-    const sentences = text.split(/(?<=[.!?])\s+/);
-    const chunks: string[] = [];
-    let current = '';
-    for (const sentence of sentences) {
-      if (current.length + sentence.length > chunkSize) { if (current) chunks.push(current); current = sentence; } else { current += ' ' + sentence; }
-    }
-    if (current) chunks.push(current);
-    return chunks;
   }
 }
